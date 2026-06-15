@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <title>Authorization</title>
+</head>
+<body>
+    <div class="loginForm">
+        <h1>Authorization</h1>
+        <input id="inputLogin" placeholder="Login">
+        <input id="inputPassword" placeholder="Password">
+        <button id="submitButton">Submit</button>
+    </div>
+    <div class="loginnedForm" style="display: none">
+        <h1>Вы успешно вошли в систему!</h1>
+        <button id="exitButton">Выйти</button>
+    </div>
+
+    <script>
+        (async function checkAuth() {
+            if (localStorage.length > 0) {
+                let token = localStorage.getItem("token");
+
+                if (!token) {
+                    localStorage.clear();
+                    location.reload();
+                    return;
+                }
+
+                try {
+                    const response = await fetch('http://localhost:5273/api/auth/profile', {
+                        method: 'GET',
+                        headers: {'Authorization': 'Bearer ' + token},
+                        mode: 'cors'
+                    });
+
+                    if (response.status === 200) {
+                        document.querySelector('.loginForm').style.display = "none";
+                        document.querySelector('.loginnedForm').style.display = "block";
+                    } else if (response.status === 401) {
+                        localStorage.clear();
+                        location.reload();
+                    }
+                } catch (err) {
+                    console.error('Ошибка проверки токена:', err);
+                    localStorage.clear();
+                }
+            }
+        })();
+
+        document.querySelector('#submitButton').onclick = async () => {
+            const login = document.getElementById('inputLogin').value;
+            const password = document.getElementById('inputPassword').value;
+            
+            try {
+                const response = await fetch('http://localhost:5273/api/auth/login', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({login, password}),
+                    mode: 'cors'
+                });
+
+                if (response.status === 200)
+                {
+                    const data = await response.json();
+                    localStorage.setItem("token", data.accessToken);
+                    document.querySelector('.loginForm').style.display = "none";
+                    document.querySelector('.loginnedForm').style.display = "block";
+                }
+            } catch (error) {
+                console.error('Ошибка:', error);
+            }
+        };
+
+        document.querySelector('#exitButton').onclick = async () => {
+            localStorage.clear();
+            location.reload();
+        };
+    </script>
+</body>
+</html>
